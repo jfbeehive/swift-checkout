@@ -235,7 +235,7 @@ export default function Index() {
         customer: {
           name: customerData.name,
           email: customerData.email,
-          phone: customerData.phone.replace(/\D/g, ""),
+          phone: `+55${customerData.phone.replace(/\D/g, "")}`,
           cpf: customerData.cpf.replace(/\D/g, ""),
         },
         address: {
