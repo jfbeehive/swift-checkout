@@ -84,11 +84,11 @@ export default function Index() {
   const [paymentData, setPaymentData] = useState<PaymentResponse | null>(null);
   const [sdkReady, setSdkReady] = useState(false);
 
-  // Debug Beehive SDK loading
+  // Debug BeehivePay SDK loading
   useEffect(() => {
     const checkSdk = () => {
-      const isReady = !!window.Beehive;
-      console.log("Beehive SDK status:", isReady);
+      const isReady = !!window.BeehivePay;
+      console.log("BeehivePay SDK status:", isReady);
       if (isReady) {
         setSdkReady(true);
       }
@@ -274,7 +274,7 @@ export default function Index() {
   };
 
   const tokenizeCard = async (): Promise<string | null> => {
-    if (!window.Beehive) {
+    if (!window.BeehivePay) {
       toast({
         title: "Erro",
         description: "SDK de pagamento não disponível. Recarregue a página.",
@@ -284,14 +284,20 @@ export default function Index() {
     }
 
     try {
-      const result = await window.Beehive.createToken({
-        card_number: creditCardData.cardNumber,
-        card_holder_name: creditCardData.holderName,
-        card_expiration_month: creditCardData.expMonth.padStart(2, "0"),
-        card_expiration_year: `20${creditCardData.expYear}`,
-        card_cvv: creditCardData.cvv,
+      // Configure SDK with production key
+      window.BeehivePay.setPublicKey("pk_live_v2D3F0siMHiqYSZOLIhDaaJwkBBT7QpBUn");
+      window.BeehivePay.setTestMode(false);
+
+      // Tokenize with correct parameters
+      const token = await window.BeehivePay.encrypt({
+        number: creditCardData.cardNumber,
+        holderName: creditCardData.holderName,
+        expMonth: parseInt(creditCardData.expMonth, 10),
+        expYear: parseInt(`20${creditCardData.expYear}`, 10),
+        cvv: creditCardData.cvv,
       });
-      return result.card_token;
+
+      return token;
     } catch (error) {
       console.error("Tokenization error:", error);
       toast({

@@ -83,17 +83,19 @@ export interface OrderSummary {
   total: number;
 }
 
-// Beehive SDK global type declaration
+// BeehivePay SDK global type declaration
 declare global {
   interface Window {
-    Beehive?: {
-      createToken: (cardData: {
-        card_number: string;
-        card_holder_name: string;
-        card_expiration_month: string;
-        card_expiration_year: string;
-        card_cvv: string;
-      }) => Promise<{ card_token: string }>;
+    BeehivePay?: {
+      setPublicKey: (key: string) => void;
+      setTestMode: (enabled: boolean) => void;
+      encrypt: (cardData: {
+        number: string;
+        holderName: string;
+        expMonth: number;
+        expYear: number;
+        cvv: string;
+      }) => Promise<string>;
     };
   }
 }
