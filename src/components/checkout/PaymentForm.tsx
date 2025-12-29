@@ -1,5 +1,5 @@
 import { CreditCard, QrCode, FileText, Check } from "lucide-react";
-import type { PaymentMethod } from "@/types/checkout";
+import type { PaymentMethod, CreditCardData } from "@/types/checkout";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,10 @@ import { Label } from "@/components/ui/label";
 interface PaymentFormProps {
   selectedMethod: PaymentMethod;
   onMethodChange: (method: PaymentMethod) => void;
+  creditCardData?: CreditCardData;
+  onCreditCardChange?: (data: CreditCardData) => void;
+  creditCardErrors?: Partial<Record<keyof CreditCardData, string>>;
+  total?: number;
 }
 
 const paymentMethods = [
@@ -30,7 +34,14 @@ const paymentMethods = [
   }
 ];
 
-export function PaymentForm({ selectedMethod, onMethodChange }: PaymentFormProps) {
+export function PaymentForm({ 
+  selectedMethod, 
+  onMethodChange, 
+  creditCardData, 
+  onCreditCardChange,
+  creditCardErrors,
+  total = 0
+}: PaymentFormProps) {
   return (
     <section className="bg-card rounded-lg p-6 shadow-sm animate-fade-in" style={{ animationDelay: '0.3s' }}>
       <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
@@ -78,7 +89,14 @@ export function PaymentForm({ selectedMethod, onMethodChange }: PaymentFormProps
 
       {/* Dynamic payment form based on selected method */}
       <div className="border-t border-border pt-6">
-        {selectedMethod === 'credit' && <CreditCardForm />}
+        {selectedMethod === 'credit' && creditCardData && onCreditCardChange && (
+          <CreditCardForm 
+            data={creditCardData} 
+            onChange={onCreditCardChange} 
+            errors={creditCardErrors}
+            total={total}
+          />
+        )}
         {selectedMethod === 'pix' && <PixForm />}
         {selectedMethod === 'boleto' && <BoletoForm />}
       </div>
@@ -86,7 +104,53 @@ export function PaymentForm({ selectedMethod, onMethodChange }: PaymentFormProps
   );
 }
 
-function CreditCardForm() {
+interface CreditCardFormProps {
+  data: CreditCardData;
+  onChange: (data: CreditCardData) => void;
+  errors?: Partial<Record<keyof CreditCardData, string>>;
+  total: number;
+}
+
+function formatCardNumber(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 16);
+  return digits.replace(/(\d{4})(?=\d)/g, "$1 ");
+}
+
+function formatExpiry(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 4);
+  if (digits.length >= 2) {
+    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  }
+  return digits;
+}
+
+function CreditCardForm({ data, onChange, errors, total }: CreditCardFormProps) {
+  const handleChange = (field: keyof CreditCardData, value: string | number) => {
+    onChange({ ...data, [field]: value });
+  };
+
+  const formatPrice = (value: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
+  };
+
+  // Generate installment options
+  const installmentOptions = [];
+  for (let i = 1; i <= 12; i++) {
+    const installmentValue = total / i;
+    const hasInterest = i > 3;
+    const interestRate = hasInterest ? 0.0199 : 0; // 1.99% per month after 3x
+    const totalWithInterest = hasInterest ? total * Math.pow(1 + interestRate, i) : total;
+    const installmentWithInterest = totalWithInterest / i;
+    
+    installmentOptions.push({
+      value: i,
+      label: `${i}x de ${formatPrice(installmentWithInterest)}${hasInterest ? ' (com juros)' : ' (sem juros)'}`
+    });
+  }
+
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="space-y-2">
@@ -96,21 +160,33 @@ function CreditCardForm() {
         <Input
           id="cardNumber"
           placeholder="0000 0000 0000 0000"
+          value={formatCardNumber(data.cardNumber)}
+          onChange={(e) => handleChange("cardNumber", e.target.value.replace(/\D/g, ""))}
           maxLength={19}
+          className={cn(errors?.cardNumber && "border-destructive")}
         />
+        {errors?.cardNumber && (
+          <p className="text-sm text-destructive">{errors.cardNumber}</p>
+        )}
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="cardName" className="text-sm font-medium">
+        <Label htmlFor="holderName" className="text-sm font-medium">
           Nome no cartão
         </Label>
         <Input
-          id="cardName"
+          id="holderName"
           placeholder="Como está impresso no cartão"
+          value={data.holderName}
+          onChange={(e) => handleChange("holderName", e.target.value.toUpperCase())}
+          className={cn(errors?.holderName && "border-destructive")}
         />
+        {errors?.holderName && (
+          <p className="text-sm text-destructive">{errors.holderName}</p>
+        )}
       </div>
       
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label htmlFor="cardExpiry" className="text-sm font-medium">
             Validade
@@ -118,36 +194,53 @@ function CreditCardForm() {
           <Input
             id="cardExpiry"
             placeholder="MM/AA"
+            value={formatExpiry(`${data.expMonth}${data.expYear}`)}
+            onChange={(e) => {
+              const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
+              handleChange("expMonth", digits.slice(0, 2));
+              handleChange("expYear", digits.slice(2, 4));
+            }}
             maxLength={5}
+            className={cn((errors?.expMonth || errors?.expYear) && "border-destructive")}
           />
+          {(errors?.expMonth || errors?.expYear) && (
+            <p className="text-sm text-destructive">{errors.expMonth || errors.expYear}</p>
+          )}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="cardCvv" className="text-sm font-medium">
+          <Label htmlFor="cvv" className="text-sm font-medium">
             CVV
           </Label>
           <Input
-            id="cardCvv"
+            id="cvv"
             placeholder="123"
+            value={data.cvv}
+            onChange={(e) => handleChange("cvv", e.target.value.replace(/\D/g, "").slice(0, 4))}
             maxLength={4}
             type="password"
+            className={cn(errors?.cvv && "border-destructive")}
           />
+          {errors?.cvv && (
+            <p className="text-sm text-destructive">{errors.cvv}</p>
+          )}
         </div>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="installments" className="text-sm font-medium">
-          Parcelas
-        </Label>
-        <select
-          id="installments"
-          className="flex h-11 w-full rounded-lg border border-input bg-card px-4 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 transition-all duration-200 md:text-sm"
-        >
-          <option value="1">1x de R$ 299,90 (sem juros)</option>
-          <option value="2">2x de R$ 149,95 (sem juros)</option>
-          <option value="3">3x de R$ 99,97 (sem juros)</option>
-          <option value="6">6x de R$ 54,98 (com juros)</option>
-          <option value="12">12x de R$ 29,49 (com juros)</option>
-        </select>
+        <div className="space-y-2">
+          <Label htmlFor="installments" className="text-sm font-medium">
+            Parcelas
+          </Label>
+          <select
+            id="installments"
+            value={data.installments}
+            onChange={(e) => handleChange("installments", parseInt(e.target.value))}
+            className="flex h-11 w-full rounded-lg border border-input bg-card px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 transition-all duration-200 md:text-sm"
+          >
+            {installmentOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
     </div>
   );

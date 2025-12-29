@@ -20,7 +20,23 @@ import type {
   ShippingOption,
   CheckoutStep,
   PaymentResponse,
+  CreditCardData,
 } from "@/types/checkout";
+
+// Declare global Beehive SDK type
+declare global {
+  interface Window {
+    Beehive?: {
+      createToken: (cardData: {
+        card_number: string;
+        card_holder_name: string;
+        card_expiration_month: string;
+        card_expiration_year: string;
+        card_cvv: string;
+      }) => Promise<{ card_token: string }>;
+    };
+  }
+}
 
 // Sample data
 const initialProducts: Product[] = [
@@ -105,9 +121,20 @@ export default function Index() {
   const [selectedShipping, setSelectedShipping] = useState<string>("standard");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("pix");
 
+  // Credit card state
+  const [creditCardData, setCreditCardData] = useState<CreditCardData>({
+    cardNumber: "",
+    holderName: "",
+    expMonth: "",
+    expYear: "",
+    cvv: "",
+    installments: 1,
+  });
+
   // Errors state
   const [customerErrors, setCustomerErrors] = useState<Partial<Record<keyof CustomerData, string>>>({});
   const [addressErrors, setAddressErrors] = useState<Partial<Record<keyof AddressData, string>>>({});
+  const [creditCardErrors, setCreditCardErrors] = useState<Partial<Record<keyof CreditCardData, string>>>({});
 
   // Calculations
   const subtotal = products.reduce((sum, p) => sum + p.price * p.quantity, 0);
@@ -124,6 +151,11 @@ export default function Index() {
   const handleAddressChange = useCallback((field: keyof AddressData, value: string) => {
     setAddressData((prev) => ({ ...prev, [field]: value }));
     setAddressErrors((prev) => ({ ...prev, [field]: undefined }));
+  }, []);
+
+  const handleCreditCardChange = useCallback((data: CreditCardData) => {
+    setCreditCardData(data);
+    setCreditCardErrors({});
   }, []);
 
   const handleQuantityChange = useCallback((productId: string, delta: number) => {
@@ -203,20 +235,80 @@ export default function Index() {
     return isValid;
   };
 
-  const handleCheckout = async () => {
-    if (paymentMethod === "credit") {
+  const validateCreditCard = (): boolean => {
+    let isValid = true;
+    const errors: Partial<Record<keyof CreditCardData, string>> = {};
+
+    if (!creditCardData.cardNumber || creditCardData.cardNumber.length < 13) {
+      errors.cardNumber = "Número do cartão inválido";
+      isValid = false;
+    }
+    if (!creditCardData.holderName.trim()) {
+      errors.holderName = "Nome no cartão é obrigatório";
+      isValid = false;
+    }
+    if (!creditCardData.expMonth || parseInt(creditCardData.expMonth) < 1 || parseInt(creditCardData.expMonth) > 12) {
+      errors.expMonth = "Mês inválido";
+      isValid = false;
+    }
+    if (!creditCardData.expYear || creditCardData.expYear.length !== 2) {
+      errors.expYear = "Ano inválido";
+      isValid = false;
+    }
+    if (!creditCardData.cvv || creditCardData.cvv.length < 3) {
+      errors.cvv = "CVV inválido";
+      isValid = false;
+    }
+
+    setCreditCardErrors(errors);
+    return isValid;
+  };
+
+  const tokenizeCard = async (): Promise<string | null> => {
+    if (!window.Beehive) {
       toast({
-        title: "Método não disponível",
-        description: "Selecione Pix ou Boleto para continuar.",
+        title: "Erro",
+        description: "SDK de pagamento não disponível. Recarregue a página.",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    try {
+      const result = await window.Beehive.createToken({
+        card_number: creditCardData.cardNumber,
+        card_holder_name: creditCardData.holderName,
+        card_expiration_month: creditCardData.expMonth.padStart(2, "0"),
+        card_expiration_year: `20${creditCardData.expYear}`,
+        card_cvv: creditCardData.cvv,
+      });
+      return result.card_token;
+    } catch (error) {
+      console.error("Tokenization error:", error);
+      toast({
+        title: "Erro ao processar cartão",
+        description: "Verifique os dados do cartão e tente novamente.",
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
+
+  const handleCheckout = async () => {
+    if (!validateForm()) {
+      toast({
+        title: "Erro de validação",
+        description: "Por favor, preencha todos os campos obrigatórios.",
         variant: "destructive",
       });
       return;
     }
 
-    if (!validateForm()) {
+    // Validate credit card if selected
+    if (paymentMethod === "credit" && !validateCreditCard()) {
       toast({
-        title: "Erro de validação",
-        description: "Por favor, preencha todos os campos obrigatórios.",
+        title: "Erro no cartão",
+        description: "Por favor, verifique os dados do cartão.",
         variant: "destructive",
       });
       return;
@@ -229,9 +321,21 @@ export default function Index() {
       // Prepare checkout data in the required format
       const selectedShippingOption = shippingOptions.find((s) => s.id === selectedShipping);
       
-      const checkoutData = {
+      let cardToken: string | undefined;
+      
+      // Tokenize card if credit payment
+      if (paymentMethod === "credit") {
+        const token = await tokenizeCard();
+        if (!token) {
+          setIsProcessing(false);
+          return;
+        }
+        cardToken = token;
+      }
+
+      const checkoutData: Record<string, unknown> = {
         amount: Math.round(total * 100), // Convert to cents
-        paymentMethod: paymentMethod as "pix" | "boleto",
+        paymentMethod: paymentMethod,
         customer: {
           name: customerData.name,
           email: customerData.email,
@@ -262,6 +366,12 @@ export default function Index() {
         discount: Math.round(discount * 100),
         metadata: { source: "lovable" },
       };
+
+      // Add credit card specific fields
+      if (paymentMethod === "credit" && cardToken) {
+        checkoutData.cardToken = cardToken;
+        checkoutData.installments = creditCardData.installments;
+      }
 
       // Send to webhook
       const response = await fetch("https://integration.paybeehive.cloud/webhook/checkout", {
@@ -311,7 +421,21 @@ export default function Index() {
         data.secureUrl = data.secureUrl || "";
       }
 
-      // Final validation
+      // Handle credit card response
+      if (paymentMethod === "credit") {
+        data.paymentMethod = "credit";
+        // Credit card payments can be immediately paid, refused, or processing
+        if (data.status === "paid") {
+          setPaymentData(data);
+          setStep("success");
+          return;
+        } else if (data.status === "refused") {
+          throw new Error(data.message || "Pagamento recusado. Verifique os dados do cartão.");
+        }
+        // For processing status, show payment screen
+      }
+
+      // Final validation for pix/boleto
       if (paymentMethod === "pix" && !data.pix?.qrCodeBase64) {
         throw new Error("Dados do Pix não encontrados");
       }
@@ -327,7 +451,7 @@ export default function Index() {
       setError(error instanceof Error ? error.message : "Erro ao processar pedido");
       toast({
         title: "Erro ao processar pedido",
-        description: "Por favor, tente novamente.",
+        description: error instanceof Error ? error.message : "Por favor, tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -351,6 +475,7 @@ export default function Index() {
     setProducts(initialProducts);
     setCustomerData({ name: "", email: "", phone: "", cpf: "" });
     setAddressData({ cep: "", address: "", number: "", complement: "", city: "", state: "" });
+    setCreditCardData({ cardNumber: "", holderName: "", expMonth: "", expYear: "", cvv: "", installments: 1 });
     setSelectedShipping("standard");
     setPaymentMethod("pix");
   };
@@ -435,7 +560,14 @@ export default function Index() {
             <PersonalDataForm data={customerData} errors={customerErrors} onChange={handleCustomerChange} />
             <AddressForm data={addressData} errors={addressErrors} onChange={handleAddressChange} />
             <ShippingForm options={shippingOptions} selectedId={selectedShipping} onSelect={setSelectedShipping} />
-            <PaymentForm selectedMethod={paymentMethod} onMethodChange={setPaymentMethod} />
+            <PaymentForm 
+              selectedMethod={paymentMethod} 
+              onMethodChange={setPaymentMethod}
+              creditCardData={creditCardData}
+              onCreditCardChange={handleCreditCardChange}
+              creditCardErrors={creditCardErrors}
+              total={total}
+            />
           </div>
 
           {/* Right column - Summary (desktop only) */}
