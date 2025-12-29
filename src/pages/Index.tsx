@@ -97,7 +97,9 @@ export default function Index() {
     cep: "",
     address: "",
     number: "",
-    complement: ""
+    complement: "",
+    city: "",
+    state: ""
   });
   
   const [selectedShipping, setSelectedShipping] = useState<string>("standard");
@@ -184,6 +186,14 @@ export default function Index() {
     }
     if (!addressData.address.trim()) {
       newAddressErrors.address = "Endereço é obrigatório";
+      isValid = false;
+    }
+    if (!addressData.city.trim()) {
+      newAddressErrors.city = "Cidade é obrigatória";
+      isValid = false;
+    }
+    if (!addressData.state.trim() || addressData.state.length !== 2) {
+      newAddressErrors.state = "Estado inválido";
       isValid = false;
     }
     if (!addressData.number.trim()) {
@@ -296,7 +306,7 @@ export default function Index() {
     setError(null);
     setProducts(initialProducts);
     setCustomerData({ name: "", email: "", phone: "", cpf: "" });
-    setAddressData({ cep: "", address: "", number: "", complement: "" });
+    setAddressData({ cep: "", address: "", number: "", complement: "", city: "", state: "" });
     setSelectedShipping("standard");
     setPaymentMethod("pix");
   };

@@ -26,6 +26,8 @@ export interface AddressData {
   address: string;
   number: string;
   complement: string;
+  city: string;
+  state: string;
 }
 
 export type PaymentMethod = 'credit' | 'pix' | 'boleto';
