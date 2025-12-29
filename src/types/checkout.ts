@@ -90,6 +90,19 @@ declare global {
     BeehivePay?: {
       setPublicKey: (key: string) => void;
       setTestMode: (enabled: boolean) => void;
+      is3DSAvailable: () => Promise<boolean>;
+      authenticate3DS: (params: {
+        amount: number;
+        currency: string;
+        installments: number;
+        card: {
+          number: string;
+          holderName: string;
+          expMonth: number;
+          expYear: number;
+          cvv: string;
+        };
+      }) => Promise<void>;
       encrypt: (cardData: {
         number: string;
         holderName: string;

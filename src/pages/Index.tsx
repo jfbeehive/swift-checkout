@@ -289,23 +289,63 @@ export default function Index() {
       window.BeehivePay.setPublicKey("pk_live_v2D3F0siMHiqYSZOLIhDaaJwkBBT7QpBUn");
       window.BeehivePay.setTestMode(false);
 
-      // Tokenize with correct parameters
-      const token = await window.BeehivePay.encrypt({
-        number: creditCardData.cardNumber,
+      // Prepare card data
+      const card = {
+        number: creditCardData.cardNumber.replace(/\s/g, ""),
         holderName: creditCardData.holderName,
         expMonth: parseInt(creditCardData.expMonth, 10),
         expYear: parseInt(`20${creditCardData.expYear}`, 10),
         cvv: creditCardData.cvv,
-      });
+      };
+
+      // Check if 3DS is available
+      const is3DSAvailable = await window.BeehivePay.is3DSAvailable();
+      console.log("3DS disponível:", is3DSAvailable);
+
+      // If 3DS is enabled, perform authentication
+      if (is3DSAvailable) {
+        console.log("Iniciando autenticação 3DS...");
+        
+        // Calculate total amount in cents
+        const selectedShippingOption = shippingOptions.find(s => s.id === selectedShipping);
+        const shippingPrice = selectedShippingOption?.price || 0;
+        const amountInCents = Math.round((subtotal + shippingPrice - discount) * 100);
+        
+        await window.BeehivePay.authenticate3DS({
+          amount: amountInCents,
+          currency: "brl",
+          installments: creditCardData.installments,
+          card,
+        });
+        
+        console.log("Autenticação 3DS concluída com sucesso");
+      }
+
+      // Tokenize after authentication (or directly if 3DS not available)
+      const token = await window.BeehivePay.encrypt(card);
+      console.log("Token gerado com sucesso");
 
       return token;
     } catch (error) {
-      console.error("Tokenization error:", error);
-      toast({
-        title: "Erro ao processar cartão",
-        description: "Verifique os dados do cartão e tente novamente.",
-        variant: "destructive",
-      });
+      console.error("Erro no processo de pagamento:", error);
+      
+      // Specific message for 3DS failure
+      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+      
+      if (errorMessage.toLowerCase().includes("3ds") || errorMessage.toLowerCase().includes("autenticação")) {
+        toast({
+          title: "Falha na autenticação",
+          description: "A autenticação 3D Secure falhou. Por favor, tente novamente.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Erro ao processar cartão",
+          description: "Verifique os dados do cartão e tente novamente.",
+          variant: "destructive",
+        });
+      }
+      
       return null;
     }
   };
