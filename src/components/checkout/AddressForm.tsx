@@ -30,6 +30,8 @@ export function AddressForm({ data, errors, onChange }: AddressFormProps) {
         const result = await response.json();
         if (!result.erro) {
           onChange('address', result.logradouro || '');
+          onChange('city', result.localidade || '');
+          onChange('state', result.uf || '');
         }
       } catch (error) {
         console.error('Error fetching CEP:', error);
@@ -114,6 +116,41 @@ export function AddressForm({ data, errors, onChange }: AddressFormProps) {
               value={data.complement}
               onChange={(e) => onChange('complement', e.target.value)}
             />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="city" className="text-sm font-medium">
+              Cidade
+            </Label>
+            <Input
+              id="city"
+              placeholder="São Paulo"
+              value={data.city}
+              onChange={(e) => onChange('city', e.target.value)}
+              error={!!errors.city}
+            />
+            {errors.city && (
+              <p className="text-sm text-destructive">{errors.city}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="state" className="text-sm font-medium">
+              Estado
+            </Label>
+            <Input
+              id="state"
+              placeholder="SP"
+              value={data.state}
+              onChange={(e) => onChange('state', e.target.value.toUpperCase().slice(0, 2))}
+              error={!!errors.state}
+              maxLength={2}
+            />
+            {errors.state && (
+              <p className="text-sm text-destructive">{errors.state}</p>
+            )}
           </div>
         </div>
       </div>
