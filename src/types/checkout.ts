@@ -45,10 +45,19 @@ export interface BoletoPaymentData {
   barcode: string;
 }
 
+export interface CreditCardData {
+  cardNumber: string;
+  holderName: string;
+  expMonth: string;
+  expYear: string;
+  cvv: string;
+  installments: number;
+}
+
 export interface PaymentResponse {
   ok?: boolean;
-  paymentMethod?: 'pix' | 'boleto';
-  status: 'waiting_payment' | 'paid' | 'refused' | 'error';
+  paymentMethod?: 'pix' | 'boleto' | 'credit';
+  status: 'waiting_payment' | 'paid' | 'refused' | 'error' | 'processing';
   secureUrl: string;
   transactionId?: string;
   // Pix fields (flat structure from webhook)
@@ -58,6 +67,9 @@ export interface PaymentResponse {
   digitableLine?: string;
   pdfUrl?: string;
   barcode?: string;
+  // Credit card fields
+  authorizationCode?: string;
+  message?: string;
   // Legacy nested structure (for backward compatibility)
   pix?: PixPaymentData;
   boleto?: BoletoPaymentData;
