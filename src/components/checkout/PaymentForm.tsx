@@ -125,8 +125,8 @@ function formatExpiry(value: string): string {
 }
 
 function CreditCardForm({ data, onChange, errors, total }: CreditCardFormProps) {
-  const handleChange = (field: keyof CreditCardData, value: string | number) => {
-    onChange({ ...data, [field]: value });
+  const handleChange = (updates: Partial<CreditCardData>) => {
+    onChange({ ...data, ...updates });
   };
 
   const formatPrice = (value: number) => {
@@ -161,7 +161,7 @@ function CreditCardForm({ data, onChange, errors, total }: CreditCardFormProps) 
           id="cardNumber"
           placeholder="0000 0000 0000 0000"
           value={formatCardNumber(data.cardNumber)}
-          onChange={(e) => handleChange("cardNumber", e.target.value.replace(/\D/g, ""))}
+          onChange={(e) => handleChange({ cardNumber: e.target.value.replace(/\D/g, "") })}
           maxLength={19}
           className={cn(errors?.cardNumber && "border-destructive")}
         />
@@ -178,7 +178,7 @@ function CreditCardForm({ data, onChange, errors, total }: CreditCardFormProps) 
           id="holderName"
           placeholder="Como está impresso no cartão"
           value={data.holderName}
-          onChange={(e) => handleChange("holderName", e.target.value.toUpperCase())}
+          onChange={(e) => handleChange({ holderName: e.target.value.toUpperCase() })}
           className={cn(errors?.holderName && "border-destructive")}
         />
         {errors?.holderName && (
@@ -197,8 +197,10 @@ function CreditCardForm({ data, onChange, errors, total }: CreditCardFormProps) 
             value={formatExpiry(`${data.expMonth}${data.expYear}`)}
             onChange={(e) => {
               const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
-              handleChange("expMonth", digits.slice(0, 2));
-              handleChange("expYear", digits.slice(2, 4));
+              handleChange({ 
+                expMonth: digits.slice(0, 2), 
+                expYear: digits.slice(2, 4) 
+              });
             }}
             maxLength={5}
             className={cn((errors?.expMonth || errors?.expYear) && "border-destructive")}
@@ -215,7 +217,7 @@ function CreditCardForm({ data, onChange, errors, total }: CreditCardFormProps) 
             id="cvv"
             placeholder="123"
             value={data.cvv}
-            onChange={(e) => handleChange("cvv", e.target.value.replace(/\D/g, "").slice(0, 4))}
+            onChange={(e) => handleChange({ cvv: e.target.value.replace(/\D/g, "").slice(0, 4) })}
             maxLength={4}
             type="password"
             className={cn(errors?.cvv && "border-destructive")}
@@ -231,7 +233,7 @@ function CreditCardForm({ data, onChange, errors, total }: CreditCardFormProps) 
           <select
             id="installments"
             value={data.installments}
-            onChange={(e) => handleChange("installments", parseInt(e.target.value))}
+            onChange={(e) => handleChange({ installments: parseInt(e.target.value) })}
             className="flex h-11 w-full rounded-lg border border-input bg-card px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 transition-all duration-200 md:text-sm"
           >
             {installmentOptions.map((opt) => (
