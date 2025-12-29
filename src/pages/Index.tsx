@@ -197,14 +197,55 @@ export default function Index() {
 
     setIsProcessing(true);
     
-    // Simulate processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    setIsProcessing(false);
-    toast({
-      title: "Pedido realizado com sucesso!",
-      description: "Você receberá um email com os detalhes do seu pedido.",
-    });
+    try {
+      // Prepare checkout data
+      const checkoutData = {
+        customer: customerData,
+        address: addressData,
+        shipping: {
+          optionId: selectedShipping,
+          ...shippingOptions.find(s => s.id === selectedShipping)
+        },
+        payment: {
+          method: paymentMethod
+        },
+        order: {
+          products: products,
+          subtotal,
+          shippingCost,
+          discount,
+          total
+        },
+        timestamp: new Date().toISOString()
+      };
+
+      // Send to webhook
+      const response = await fetch('https://integration.paybeehive.cloud/webhook/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(checkoutData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha ao processar checkout');
+      }
+
+      toast({
+        title: "Pedido realizado com sucesso!",
+        description: "Você receberá um email com os detalhes do seu pedido.",
+      });
+    } catch (error) {
+      console.error('Checkout error:', error);
+      toast({
+        title: "Erro ao processar pedido",
+        description: "Por favor, tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   // Summary component to reuse in mobile and desktop
