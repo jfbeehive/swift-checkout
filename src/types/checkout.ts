@@ -30,6 +30,27 @@ export interface AddressData {
 
 export type PaymentMethod = 'credit' | 'pix' | 'boleto';
 
+export type CheckoutStep = 'checkout' | 'payment' | 'success';
+
+export interface PixPaymentData {
+  copyPaste: string;
+  qrCodeBase64: string;
+}
+
+export interface BoletoPaymentData {
+  digitableLine: string;
+  pdfUrl: string;
+  barcode: string;
+}
+
+export interface PaymentResponse {
+  status: 'waiting_payment' | 'paid' | 'refused' | 'error';
+  secureUrl: string;
+  transactionId?: string;
+  pix?: PixPaymentData;
+  boleto?: BoletoPaymentData;
+}
+
 export interface OrderSummary {
   products: Product[];
   subtotal: number;

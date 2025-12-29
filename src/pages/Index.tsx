@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { AlertCircle } from "lucide-react";
 import { CheckoutHeader } from "@/components/checkout/CheckoutHeader";
 import { PersonalDataForm } from "@/components/checkout/PersonalDataForm";
 import { AddressForm } from "@/components/checkout/AddressForm";
@@ -7,13 +8,18 @@ import { PaymentForm } from "@/components/checkout/PaymentForm";
 import { OrderSummary } from "@/components/checkout/OrderSummary";
 import { OrderBump } from "@/components/checkout/OrderBump";
 import { MobileOrderSummary } from "@/components/checkout/MobileOrderSummary";
+import { PaymentScreen } from "@/components/checkout/PaymentScreen";
+import { SuccessScreen } from "@/components/checkout/SuccessScreen";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 import type { 
   CustomerData, 
   AddressData, 
   PaymentMethod, 
   Product, 
-  ShippingOption 
+  ShippingOption,
+  CheckoutStep,
+  PaymentResponse
 } from "@/types/checkout";
 
 // Sample data
@@ -69,7 +75,12 @@ const shippingOptions: ShippingOption[] = [
 
 export default function Index() {
   const { toast } = useToast();
+  
+  // Step state machine
+  const [step, setStep] = useState<CheckoutStep>('checkout');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [paymentData, setPaymentData] = useState<PaymentResponse | null>(null);
   
   // Products state
   const [products, setProducts] = useState<Product[]>(initialProducts);
@@ -90,7 +101,7 @@ export default function Index() {
   });
   
   const [selectedShipping, setSelectedShipping] = useState<string>("standard");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("credit");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("pix");
   
   // Errors state
   const [customerErrors, setCustomerErrors] = useState<Partial<Record<keyof CustomerData, string>>>({});
@@ -186,6 +197,15 @@ export default function Index() {
   };
 
   const handleCheckout = async () => {
+    if (paymentMethod === 'credit') {
+      toast({
+        title: "Método não disponível",
+        description: "Selecione Pix ou Boleto para continuar.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!validateForm()) {
       toast({
         title: "Erro de validação",
@@ -196,27 +216,26 @@ export default function Index() {
     }
 
     setIsProcessing(true);
+    setError(null);
     
     try {
-      // Prepare checkout data
+      // Prepare checkout data in the required format
       const checkoutData = {
-        customer: customerData,
-        address: addressData,
-        shipping: {
-          optionId: selectedShipping,
-          ...shippingOptions.find(s => s.id === selectedShipping)
+        amount: Math.round(total * 100), // Convert to cents
+        paymentMethod: paymentMethod as 'pix' | 'boleto',
+        customer: {
+          name: customerData.name,
+          email: customerData.email,
+          phone: customerData.phone.replace(/\D/g, ''),
+          cpf: customerData.cpf.replace(/\D/g, '')
         },
-        payment: {
-          method: paymentMethod
-        },
-        order: {
-          products: products,
-          subtotal,
-          shippingCost,
-          discount,
-          total
-        },
-        timestamp: new Date().toISOString()
+        items: products.map(p => ({
+          title: p.name,
+          quantity: p.quantity,
+          unitPrice: Math.round(p.price * 100),
+          tangible: true
+        })),
+        metadata: { source: "lovable" }
       };
 
       // Send to webhook
@@ -232,12 +251,26 @@ export default function Index() {
         throw new Error('Falha ao processar checkout');
       }
 
-      toast({
-        title: "Pedido realizado com sucesso!",
-        description: "Você receberá um email com os detalhes do seu pedido.",
-      });
+      const data: PaymentResponse = await response.json();
+      
+      // Validate response has required fields
+      if (!data.secureUrl || !data.status) {
+        throw new Error('Resposta inválida do servidor');
+      }
+
+      if (paymentMethod === 'pix' && !data.pix) {
+        throw new Error('Dados do Pix não encontrados');
+      }
+
+      if (paymentMethod === 'boleto' && !data.boleto) {
+        throw new Error('Dados do boleto não encontrados');
+      }
+
+      setPaymentData(data);
+      setStep('payment');
     } catch (error) {
       console.error('Checkout error:', error);
+      setError(error instanceof Error ? error.message : 'Erro ao processar pedido');
       toast({
         title: "Erro ao processar pedido",
         description: "Por favor, tente novamente.",
@@ -246,6 +279,26 @@ export default function Index() {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleBack = () => {
+    setStep('checkout');
+    setError(null);
+  };
+
+  const handlePaymentConfirmed = () => {
+    setStep('success');
+  };
+
+  const handleNewOrder = () => {
+    setStep('checkout');
+    setPaymentData(null);
+    setError(null);
+    setProducts(initialProducts);
+    setCustomerData({ name: "", email: "", phone: "", cpf: "" });
+    setAddressData({ cep: "", address: "", number: "", complement: "" });
+    setSelectedShipping("standard");
+    setPaymentMethod("pix");
   };
 
   // Summary component to reuse in mobile and desktop
@@ -269,9 +322,55 @@ export default function Index() {
     </>
   );
 
+  // Render based on step
+  if (step === 'payment' && paymentData) {
+    return (
+      <div className="min-h-screen bg-background">
+        <CheckoutHeader />
+        <main className="max-w-7xl mx-auto px-4 py-8 md:py-12">
+          <PaymentScreen
+            paymentMethod={paymentMethod}
+            paymentData={paymentData}
+            onBack={handleBack}
+            onPaymentConfirmed={handlePaymentConfirmed}
+          />
+        </main>
+      </div>
+    );
+  }
+
+  if (step === 'success') {
+    return (
+      <div className="min-h-screen bg-background">
+        <CheckoutHeader />
+        <main className="max-w-7xl mx-auto px-4 py-8 md:py-12">
+          <SuccessScreen onNewOrder={handleNewOrder} />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <CheckoutHeader />
+      
+      {/* Error banner */}
+      {error && (
+        <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-3">
+          <div className="max-w-7xl mx-auto flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-destructive" />
+            <p className="text-sm text-destructive">{error}</p>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setError(null)}
+              className="ml-auto text-destructive hover:text-destructive"
+            >
+              Fechar
+            </Button>
+          </div>
+        </div>
+      )}
       
       {/* Mobile order summary */}
       <MobileOrderSummary products={products} total={total}>
