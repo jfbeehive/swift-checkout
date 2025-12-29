@@ -13,7 +13,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 20% 15%;
 
-    --primary: 243 89% 38%;
+    --primary: 214 51% 22%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 14% 96%;
@@ -40,8 +40,8 @@
     
     --pricing-total: 142 69% 49%;
     
-    --gradient-start: 243 89% 52%;
-    --gradient-end: 243 89% 45%;
+    --gradient-start: 214 51% 22%;
+    --gradient-end: 214 51% 18%;
     
     --shadow-sm: 0 1px 2px 0 hsl(220 20% 15% / 0.05);
     --shadow-md: 0 4px 6px -1px hsl(220 20% 15% / 0.1), 0 2px 4px -2px hsl(220 20% 15% / 0.1);
@@ -67,7 +67,7 @@
     --popover: 220 20% 13%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 243 89% 38%;
+    --primary: 214 51% 22%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 14% 20%;
