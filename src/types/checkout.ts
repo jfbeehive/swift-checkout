@@ -82,3 +82,18 @@ export interface OrderSummary {
   discount: number;
   total: number;
 }
+
+// Beehive SDK global type declaration
+declare global {
+  interface Window {
+    Beehive?: {
+      createToken: (cardData: {
+        card_number: string;
+        card_holder_name: string;
+        card_expiration_month: string;
+        card_expiration_year: string;
+        card_cvv: string;
+      }) => Promise<{ card_token: string }>;
+    };
+  }
+}

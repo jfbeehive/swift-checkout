@@ -8,7 +8,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://api.conta.paybeehive.com.br/v1/js"></script>
+    <script 
+      src="https://api.conta.paybeehive.com.br/v1/js" 
+      id="beehive-sdk"
+      onerror="console.error('Beehive SDK failed to load')"
+    ></script>
     
     <meta property="og:title" content="Checkout - Finalizar Compra" />
     <meta property="og:description" content="Finalize sua compra com segurança" />
