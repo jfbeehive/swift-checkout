@@ -286,7 +286,18 @@ export default function Index() {
 
     try {
       // Configure SDK with production key
-      window.BeehivePay.setPublicKey("pk_live_v2D3F0siMHiqYSZOLIhDaaJwkBBT7QpBUn");
+      const beehivePublicKey = import.meta.env.VITE_BEEHIVE_PUBLIC_KEY;
+      
+      if (!beehivePublicKey) {
+        toast({
+          title: "Erro de configuração",
+          description: "Chave do BeehivePay não configurada.",
+          variant: "destructive",
+        });
+        return null;
+      }
+      
+      window.BeehivePay.setPublicKey(beehivePublicKey);
       window.BeehivePay.setTestMode(false);
 
       // Prepare card data
