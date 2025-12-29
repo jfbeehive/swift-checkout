@@ -1,6 +1,6 @@
 import { Shield, Lock } from "lucide-react";
 export function CheckoutHeader() {
-  return <header className="gradient-header w-full py-4 px-4 md:px-8 border-secondary-foreground bg-[#5b686d] text-primary">
+  return <header className="w-full py-4 px-4 md:px-8 bg-primary text-primary-foreground">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-2">
           <img src="https://static.paybeehive.cloud/logo.png" alt="Loja do Juanzin" className="h-10 w-auto" />
