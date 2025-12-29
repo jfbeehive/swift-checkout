@@ -227,6 +227,8 @@ export default function Index() {
 
     try {
       // Prepare checkout data in the required format
+      const selectedShippingOption = shippingOptions.find((s) => s.id === selectedShipping);
+      
       const checkoutData = {
         amount: Math.round(total * 100), // Convert to cents
         paymentMethod: paymentMethod as "pix" | "boleto",
@@ -236,12 +238,28 @@ export default function Index() {
           phone: customerData.phone.replace(/\D/g, ""),
           cpf: customerData.cpf.replace(/\D/g, ""),
         },
+        address: {
+          cep: addressData.cep.replace(/\D/g, ""),
+          street: addressData.address,
+          number: addressData.number,
+          complement: addressData.complement || "",
+          city: addressData.city,
+          state: addressData.state,
+        },
+        shipping: {
+          id: selectedShipping,
+          name: selectedShippingOption?.name || "",
+          price: Math.round((selectedShippingOption?.price || 0) * 100),
+          estimatedDays: selectedShippingOption?.estimatedDays || "",
+        },
         items: products.map((p) => ({
           title: p.name,
           quantity: p.quantity,
           unitPrice: Math.round(p.price * 100),
           tangible: true,
         })),
+        subtotal: Math.round(subtotal * 100),
+        discount: Math.round(discount * 100),
         metadata: { source: "lovable" },
       };
 
