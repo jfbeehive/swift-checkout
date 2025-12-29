@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { AlertCircle } from "lucide-react";
 import { CheckoutHeader } from "@/components/checkout/CheckoutHeader";
 import { PersonalDataForm } from "@/components/checkout/PersonalDataForm";
@@ -22,21 +22,6 @@ import type {
   PaymentResponse,
   CreditCardData,
 } from "@/types/checkout";
-
-// Declare global Beehive SDK type
-declare global {
-  interface Window {
-    Beehive?: {
-      createToken: (cardData: {
-        card_number: string;
-        card_holder_name: string;
-        card_expiration_month: string;
-        card_expiration_year: string;
-        card_cvv: string;
-      }) => Promise<{ card_token: string }>;
-    };
-  }
-}
 
 // Sample data
 const initialProducts: Product[] = [
@@ -97,6 +82,30 @@ export default function Index() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentData, setPaymentData] = useState<PaymentResponse | null>(null);
+  const [sdkReady, setSdkReady] = useState(false);
+
+  // Debug Beehive SDK loading
+  useEffect(() => {
+    const checkSdk = () => {
+      const isReady = !!window.Beehive;
+      console.log("Beehive SDK status:", isReady);
+      if (isReady) {
+        setSdkReady(true);
+      }
+    };
+
+    // Check immediately
+    checkSdk();
+
+    // Check again after delays (script might be loading)
+    const t1 = setTimeout(checkSdk, 1000);
+    const t2 = setTimeout(checkSdk, 3000);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, []);
 
   // Products state
   const [products, setProducts] = useState<Product[]>(initialProducts);
