@@ -12,14 +12,14 @@ import { PaymentScreen } from "@/components/checkout/PaymentScreen";
 import { SuccessScreen } from "@/components/checkout/SuccessScreen";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import type { 
-  CustomerData, 
-  AddressData, 
-  PaymentMethod, 
-  Product, 
+import type {
+  CustomerData,
+  AddressData,
+  PaymentMethod,
+  Product,
   ShippingOption,
   CheckoutStep,
-  PaymentResponse
+  PaymentResponse,
 } from "@/types/checkout";
 
 // Sample data
@@ -27,134 +27,131 @@ const initialProducts: Product[] = [
   {
     id: "1",
     name: "Tênis Running Pro Max",
-    price: 249.90,
+    price: 249.9,
     image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=200&h=200&fit=crop",
-    quantity: 1
+    quantity: 1,
   },
   {
     id: "2",
     name: "Mochila Esportiva Urban",
-    price: 89.90,
+    price: 5.9,
     image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=200&h=200&fit=crop",
-    quantity: 1
-  }
+    quantity: 1,
+  },
 ];
 
 const bumpProducts: Product[] = [
   {
     id: "bump-1",
     name: "Meias Performance Pack (3 pares)",
-    price: 29.90,
-    originalPrice: 49.90,
+    price: 29.9,
+    originalPrice: 49.9,
     image: "https://images.unsplash.com/photo-1586350977771-b3b0abd50c82?w=200&h=200&fit=crop",
-    quantity: 1
+    quantity: 1,
   },
   {
     id: "bump-2",
     name: "Garrafa Térmica 750ml",
-    price: 39.90,
-    originalPrice: 59.90,
+    price: 39.9,
+    originalPrice: 59.9,
     image: "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=200&h=200&fit=crop",
-    quantity: 1
+    quantity: 1,
   },
   {
     id: "bump-3",
     name: "Protetor Solar Esportivo FPS 70",
-    price: 34.90,
-    originalPrice: 54.90,
+    price: 34.9,
+    originalPrice: 54.9,
     image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=200&h=200&fit=crop",
-    quantity: 1
-  }
+    quantity: 1,
+  },
 ];
 
 const shippingOptions: ShippingOption[] = [
-  { id: "express", name: "Expresso", price: 24.90, estimatedDays: "1-2 dias úteis" },
-  { id: "standard", name: "Padrão", price: 14.90, estimatedDays: "3-5 dias úteis" },
-  { id: "economic", name: "Econômico", price: 0, estimatedDays: "7-10 dias úteis" }
+  { id: "express", name: "Expresso", price: 24.9, estimatedDays: "1-2 dias úteis" },
+  { id: "standard", name: "Padrão", price: 14.9, estimatedDays: "3-5 dias úteis" },
+  { id: "economic", name: "Econômico", price: 0, estimatedDays: "7-10 dias úteis" },
 ];
 
 export default function Index() {
   const { toast } = useToast();
-  
+
   // Step state machine
-  const [step, setStep] = useState<CheckoutStep>('checkout');
+  const [step, setStep] = useState<CheckoutStep>("checkout");
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentData, setPaymentData] = useState<PaymentResponse | null>(null);
-  
+
   // Products state
   const [products, setProducts] = useState<Product[]>(initialProducts);
-  
+
   // Form states
   const [customerData, setCustomerData] = useState<CustomerData>({
     name: "",
     email: "",
     phone: "",
-    cpf: ""
+    cpf: "",
   });
-  
+
   const [addressData, setAddressData] = useState<AddressData>({
     cep: "",
     address: "",
     number: "",
     complement: "",
     city: "",
-    state: ""
+    state: "",
   });
-  
+
   const [selectedShipping, setSelectedShipping] = useState<string>("standard");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("pix");
-  
+
   // Errors state
   const [customerErrors, setCustomerErrors] = useState<Partial<Record<keyof CustomerData, string>>>({});
   const [addressErrors, setAddressErrors] = useState<Partial<Record<keyof AddressData, string>>>({});
 
   // Calculations
-  const subtotal = products.reduce((sum, p) => sum + (p.price * p.quantity), 0);
-  const shippingCost = shippingOptions.find(s => s.id === selectedShipping)?.price || 0;
+  const subtotal = products.reduce((sum, p) => sum + p.price * p.quantity, 0);
+  const shippingCost = shippingOptions.find((s) => s.id === selectedShipping)?.price || 0;
   const discount = paymentMethod === "pix" ? subtotal * 0.05 : 0;
   const total = subtotal + shippingCost - discount;
 
   // Handlers
   const handleCustomerChange = useCallback((field: keyof CustomerData, value: string) => {
-    setCustomerData(prev => ({ ...prev, [field]: value }));
-    setCustomerErrors(prev => ({ ...prev, [field]: undefined }));
+    setCustomerData((prev) => ({ ...prev, [field]: value }));
+    setCustomerErrors((prev) => ({ ...prev, [field]: undefined }));
   }, []);
 
   const handleAddressChange = useCallback((field: keyof AddressData, value: string) => {
-    setAddressData(prev => ({ ...prev, [field]: value }));
-    setAddressErrors(prev => ({ ...prev, [field]: undefined }));
+    setAddressData((prev) => ({ ...prev, [field]: value }));
+    setAddressErrors((prev) => ({ ...prev, [field]: undefined }));
   }, []);
 
   const handleQuantityChange = useCallback((productId: string, delta: number) => {
-    setProducts(prev => prev.map(p => 
-      p.id === productId 
-        ? { ...p, quantity: Math.max(1, p.quantity + delta) }
-        : p
-    ));
+    setProducts((prev) =>
+      prev.map((p) => (p.id === productId ? { ...p, quantity: Math.max(1, p.quantity + delta) } : p)),
+    );
   }, []);
 
   const handleRemoveProduct = useCallback((productId: string) => {
-    setProducts(prev => prev.filter(p => p.id !== productId));
+    setProducts((prev) => prev.filter((p) => p.id !== productId));
   }, []);
 
-  const handleAddBumpProduct = useCallback((product: Product) => {
-    setProducts(prev => {
-      const existing = prev.find(p => p.id === product.id);
-      if (existing) {
-        return prev.map(p => 
-          p.id === product.id 
-            ? { ...p, quantity: p.quantity + product.quantity }
-            : p
-        );
-      }
-      return [...prev, product];
-    });
-    toast({
-      title: "Produto adicionado!",
-      description: `${product.name} foi adicionado ao seu pedido.`,
-    });
-  }, [toast]);
+  const handleAddBumpProduct = useCallback(
+    (product: Product) => {
+      setProducts((prev) => {
+        const existing = prev.find((p) => p.id === product.id);
+        if (existing) {
+          return prev.map((p) => (p.id === product.id ? { ...p, quantity: p.quantity + product.quantity } : p));
+        }
+        return [...prev, product];
+      });
+      toast({
+        title: "Produto adicionado!",
+        description: `${product.name} foi adicionado ao seu pedido.`,
+      });
+    },
+    [toast],
+  );
 
   const validateForm = () => {
     let isValid = true;
@@ -170,17 +167,17 @@ export default function Index() {
       newCustomerErrors.email = "Email inválido";
       isValid = false;
     }
-    if (!customerData.phone.trim() || customerData.phone.replace(/\D/g, '').length < 10) {
+    if (!customerData.phone.trim() || customerData.phone.replace(/\D/g, "").length < 10) {
       newCustomerErrors.phone = "Telefone inválido";
       isValid = false;
     }
-    if (!customerData.cpf.trim() || customerData.cpf.replace(/\D/g, '').length !== 11) {
+    if (!customerData.cpf.trim() || customerData.cpf.replace(/\D/g, "").length !== 11) {
       newCustomerErrors.cpf = "CPF inválido";
       isValid = false;
     }
 
     // Address validation
-    if (!addressData.cep.trim() || addressData.cep.replace(/\D/g, '').length !== 8) {
+    if (!addressData.cep.trim() || addressData.cep.replace(/\D/g, "").length !== 8) {
       newAddressErrors.cep = "CEP inválido";
       isValid = false;
     }
@@ -207,11 +204,11 @@ export default function Index() {
   };
 
   const handleCheckout = async () => {
-    if (paymentMethod === 'credit') {
+    if (paymentMethod === "credit") {
       toast({
         title: "Método não disponível",
         description: "Selecione Pix ou Boleto para continuar.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -220,71 +217,71 @@ export default function Index() {
       toast({
         title: "Erro de validação",
         description: "Por favor, preencha todos os campos obrigatórios.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     setIsProcessing(true);
     setError(null);
-    
+
     try {
       // Prepare checkout data in the required format
       const checkoutData = {
         amount: Math.round(total * 100), // Convert to cents
-        paymentMethod: paymentMethod as 'pix' | 'boleto',
+        paymentMethod: paymentMethod as "pix" | "boleto",
         customer: {
           name: customerData.name,
           email: customerData.email,
-          phone: customerData.phone.replace(/\D/g, ''),
-          cpf: customerData.cpf.replace(/\D/g, '')
+          phone: customerData.phone.replace(/\D/g, ""),
+          cpf: customerData.cpf.replace(/\D/g, ""),
         },
-        items: products.map(p => ({
+        items: products.map((p) => ({
           title: p.name,
           quantity: p.quantity,
           unitPrice: Math.round(p.price * 100),
-          tangible: true
+          tangible: true,
         })),
-        metadata: { source: "lovable" }
+        metadata: { source: "lovable" },
       };
 
       // Send to webhook
-      const response = await fetch('https://integration.paybeehive.cloud/webhook/checkout', {
-        method: 'POST',
+      const response = await fetch("https://integration.paybeehive.cloud/webhook/checkout", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(checkoutData)
+        body: JSON.stringify(checkoutData),
       });
 
       if (!response.ok) {
-        throw new Error('Falha ao processar checkout');
+        throw new Error("Falha ao processar checkout");
       }
 
       const data: PaymentResponse = await response.json();
-      
+
       // Validate response has required fields
       if (!data.secureUrl || !data.status) {
-        throw new Error('Resposta inválida do servidor');
+        throw new Error("Resposta inválida do servidor");
       }
 
-      if (paymentMethod === 'pix' && !data.pix) {
-        throw new Error('Dados do Pix não encontrados');
+      if (paymentMethod === "pix" && !data.pix) {
+        throw new Error("Dados do Pix não encontrados");
       }
 
-      if (paymentMethod === 'boleto' && !data.boleto) {
-        throw new Error('Dados do boleto não encontrados');
+      if (paymentMethod === "boleto" && !data.boleto) {
+        throw new Error("Dados do boleto não encontrados");
       }
 
       setPaymentData(data);
-      setStep('payment');
+      setStep("payment");
     } catch (error) {
-      console.error('Checkout error:', error);
-      setError(error instanceof Error ? error.message : 'Erro ao processar pedido');
+      console.error("Checkout error:", error);
+      setError(error instanceof Error ? error.message : "Erro ao processar pedido");
       toast({
         title: "Erro ao processar pedido",
         description: "Por favor, tente novamente.",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
@@ -292,16 +289,16 @@ export default function Index() {
   };
 
   const handleBack = () => {
-    setStep('checkout');
+    setStep("checkout");
     setError(null);
   };
 
   const handlePaymentConfirmed = () => {
-    setStep('success');
+    setStep("success");
   };
 
   const handleNewOrder = () => {
-    setStep('checkout');
+    setStep("checkout");
     setPaymentData(null);
     setError(null);
     setProducts(initialProducts);
@@ -325,15 +322,12 @@ export default function Index() {
         onRemove={handleRemoveProduct}
         onCheckout={handleCheckout}
       />
-      <OrderBump
-        products={bumpProducts}
-        onAddToCart={handleAddBumpProduct}
-      />
+      <OrderBump products={bumpProducts} onAddToCart={handleAddBumpProduct} />
     </>
   );
 
   // Render based on step
-  if (step === 'payment' && paymentData) {
+  if (step === "payment" && paymentData) {
     return (
       <div className="min-h-screen bg-background">
         <CheckoutHeader />
@@ -349,7 +343,7 @@ export default function Index() {
     );
   }
 
-  if (step === 'success') {
+  if (step === "success") {
     return (
       <div className="min-h-screen bg-background">
         <CheckoutHeader />
@@ -363,16 +357,16 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-background">
       <CheckoutHeader />
-      
+
       {/* Error banner */}
       {error && (
         <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-3">
           <div className="max-w-7xl mx-auto flex items-center gap-3">
             <AlertCircle className="h-5 w-5 text-destructive" />
             <p className="text-sm text-destructive">{error}</p>
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setError(null)}
               className="ml-auto text-destructive hover:text-destructive"
             >
@@ -381,37 +375,22 @@ export default function Index() {
           </div>
         </div>
       )}
-      
+
       {/* Mobile order summary */}
       <MobileOrderSummary products={products} total={total}>
         {SummaryContent}
       </MobileOrderSummary>
-      
+
       <main className="max-w-7xl mx-auto px-4 py-6 md:py-8">
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           {/* Left column - Form */}
           <div className="flex-1 lg:w-[70%] space-y-6">
-            <PersonalDataForm
-              data={customerData}
-              errors={customerErrors}
-              onChange={handleCustomerChange}
-            />
-            <AddressForm
-              data={addressData}
-              errors={addressErrors}
-              onChange={handleAddressChange}
-            />
-            <ShippingForm
-              options={shippingOptions}
-              selectedId={selectedShipping}
-              onSelect={setSelectedShipping}
-            />
-            <PaymentForm
-              selectedMethod={paymentMethod}
-              onMethodChange={setPaymentMethod}
-            />
+            <PersonalDataForm data={customerData} errors={customerErrors} onChange={handleCustomerChange} />
+            <AddressForm data={addressData} errors={addressErrors} onChange={handleAddressChange} />
+            <ShippingForm options={shippingOptions} selectedId={selectedShipping} onSelect={setSelectedShipping} />
+            <PaymentForm selectedMethod={paymentMethod} onMethodChange={setPaymentMethod} />
           </div>
-          
+
           {/* Right column - Summary (desktop only) */}
           <aside className="hidden lg:block lg:w-[30%] space-y-4 lg:sticky lg:top-6 lg:self-start">
             {SummaryContent}
