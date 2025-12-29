@@ -123,6 +123,7 @@ export default function Index() {
     address: "",
     number: "",
     complement: "",
+    neighborhood: "",
     city: "",
     state: "",
   });
@@ -362,6 +363,7 @@ export default function Index() {
           street: addressData.address,
           number: addressData.number,
           complement: addressData.complement || "",
+          neighborhood: addressData.neighborhood || "",
           city: addressData.city,
           state: addressData.state,
         },
@@ -489,7 +491,7 @@ export default function Index() {
     setError(null);
     setProducts(initialProducts);
     setCustomerData({ name: "", email: "", phone: "", cpf: "" });
-    setAddressData({ cep: "", address: "", number: "", complement: "", city: "", state: "" });
+    setAddressData({ cep: "", address: "", number: "", complement: "", neighborhood: "", city: "", state: "" });
     setCreditCardData({ cardNumber: "", holderName: "", expMonth: "", expYear: "", cvv: "", installments: 1 });
     setSelectedShipping("standard");
     setPaymentMethod("pix");

@@ -30,6 +30,7 @@ export function AddressForm({ data, errors, onChange }: AddressFormProps) {
         const result = await response.json();
         if (!result.erro) {
           onChange('address', result.logradouro || '');
+          onChange('neighborhood', result.bairro || '');
           onChange('city', result.localidade || '');
           onChange('state', result.uf || '');
         }
@@ -117,6 +118,22 @@ export function AddressForm({ data, errors, onChange }: AddressFormProps) {
               onChange={(e) => onChange('complement', e.target.value)}
             />
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="neighborhood" className="text-sm font-medium">
+            Bairro
+          </Label>
+          <Input
+            id="neighborhood"
+            placeholder="Centro"
+            value={data.neighborhood}
+            onChange={(e) => onChange('neighborhood', e.target.value)}
+            error={!!errors.neighborhood}
+          />
+          {errors.neighborhood && (
+            <p className="text-sm text-destructive">{errors.neighborhood}</p>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
