@@ -5,11 +5,13 @@ export function CheckoutHeader() {
     <header className="gradient-header w-full py-4 px-4 md:px-8">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-card/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-lg">S</span>
-          </div>
+          <img 
+            src="https://static.paybeehive.cloud/logo.png" 
+            alt="Loja do Juanzin" 
+            className="h-10 w-auto"
+          />
           <span className="text-primary-foreground font-semibold text-lg hidden sm:block">
-            SuaLoja
+            Loja do Juanzin
           </span>
         </div>
         
