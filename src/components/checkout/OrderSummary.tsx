@@ -103,7 +103,7 @@ export function OrderSummary({
 
       <div className="flex justify-between items-center py-4 border-t border-border mb-4">
         <span className="text-lg font-semibold text-foreground">Total</span>
-        <span className="text-2xl font-bold text-primary">{formatPrice(total)}</span>
+        <span className="text-2xl font-bold text-pricing-total">{formatPrice(total)}</span>
       </div>
 
       <Button
