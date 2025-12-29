@@ -276,18 +276,47 @@ export default function Index() {
         throw new Error("Falha ao processar checkout");
       }
 
-      const data: PaymentResponse = await response.json();
-
-      // Validate response has required fields
-      if (!data.secureUrl || !data.status) {
+      let data: PaymentResponse;
+      try {
+        const rawData = await response.json();
+        // Handle array response from webhook
+        data = Array.isArray(rawData) ? rawData[0] : rawData;
+      } catch {
         throw new Error("Resposta inválida do servidor");
       }
 
-      if (paymentMethod === "pix" && !data.pix) {
+      // Validate response has required fields
+      if (!data.ok && !data.status && !data.secureUrl) {
+        throw new Error("Resposta inválida do servidor");
+      }
+
+      // Normalize pix data (webhook returns flat structure)
+      if (paymentMethod === "pix" && (data.qrCodeBase64 || data.copyPaste)) {
+        data.pix = {
+          qrCodeBase64: data.qrCodeBase64 || "",
+          copyPaste: data.copyPaste || "",
+        };
+        data.status = data.status || "waiting_payment";
+        data.secureUrl = data.secureUrl || "";
+      }
+
+      // Normalize boleto data
+      if (paymentMethod === "boleto" && data.digitableLine) {
+        data.boleto = {
+          digitableLine: data.digitableLine,
+          pdfUrl: data.pdfUrl || data.secureUrl || "",
+          barcode: data.barcode || "",
+        };
+        data.status = data.status || "waiting_payment";
+        data.secureUrl = data.secureUrl || "";
+      }
+
+      // Final validation
+      if (paymentMethod === "pix" && !data.pix?.qrCodeBase64) {
         throw new Error("Dados do Pix não encontrados");
       }
 
-      if (paymentMethod === "boleto" && !data.boleto) {
+      if (paymentMethod === "boleto" && !data.boleto?.digitableLine) {
         throw new Error("Dados do boleto não encontrados");
       }
 
