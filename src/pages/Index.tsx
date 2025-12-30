@@ -12,6 +12,7 @@ import { PaymentScreen } from "@/components/checkout/PaymentScreen";
 import { SuccessScreen } from "@/components/checkout/SuccessScreen";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { useShopifyCart } from "@/hooks/useShopifyCart";
 import type {
   CustomerData,
   AddressData,
@@ -23,8 +24,8 @@ import type {
   CreditCardData,
 } from "@/types/checkout";
 
-// Sample data
-const initialProducts: Product[] = [
+// Fallback sample products (used when no Shopify cart data)
+const fallbackProducts: Product[] = [
   {
     id: "1",
     name: "Tênis Running Pro Max",
@@ -107,8 +108,15 @@ export default function Index() {
     };
   }, []);
 
-  // Products state
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  // Shopify cart integration
+  const shopifyCart = useShopifyCart();
+  
+  // Products state - use Shopify cart if available, otherwise fallback
+  const [products, setProducts] = useState<Product[]>(() => 
+    shopifyCart.isFromShopify && shopifyCart.products.length > 0 
+      ? shopifyCart.products 
+      : fallbackProducts
+  );
 
   // Form states
   const [customerData, setCustomerData] = useState<CustomerData>({
@@ -540,7 +548,7 @@ export default function Index() {
     setStep("checkout");
     setPaymentData(null);
     setError(null);
-    setProducts(initialProducts);
+    setProducts(fallbackProducts);
     setCustomerData({ name: "", email: "", phone: "", cpf: "" });
     setAddressData({ cep: "", address: "", number: "", complement: "", neighborhood: "", city: "", state: "" });
     setCreditCardData({ cardNumber: "", holderName: "", expMonth: "", expYear: "", cvv: "", installments: 1 });
